@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The original standalone Setu Express app, kept for reference only. Its
+    // logic now lives in lib/setu and app/api/setu.
+    "setu/**",
   ]),
 ]);
 

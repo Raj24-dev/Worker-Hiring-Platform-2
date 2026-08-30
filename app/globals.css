@@ -1,26 +1,215 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Karigaar — deep indigo for trust, amber for anything that needs attention.
+  Light only: the wireframes show one theme and nothing asks for a toggle.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --radius: 0.75rem;
+
+  --background: oklch(0.985 0.004 95);
+  --foreground: oklch(0.21 0.02 265);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.02 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.02 265);
+
+  --primary: oklch(0.47 0.14 262);
+  --primary-foreground: oklch(0.99 0.004 95);
+
+  --secondary: oklch(0.955 0.012 262);
+  --secondary-foreground: oklch(0.32 0.04 265);
+
+  --muted: oklch(0.965 0.008 262);
+  --muted-foreground: oklch(0.52 0.022 265);
+
+  --accent: oklch(0.955 0.025 82);
+  --accent-foreground: oklch(0.34 0.07 68);
+
+  --destructive: oklch(0.58 0.21 27);
+
+  --border: oklch(0.905 0.008 265);
+  --input: oklch(0.905 0.008 265);
+  --ring: oklch(0.47 0.14 262);
+
+  /* Status colours, used by the application/job state pills. */
+  --success: oklch(0.55 0.14 152);
+  --success-soft: oklch(0.95 0.04 152);
+  --warning: oklch(0.62 0.14 72);
+  --warning-soft: oklch(0.96 0.05 82);
+  --danger-soft: oklch(0.96 0.035 25);
+  --brand-soft: oklch(0.955 0.028 262);
+
+  /* Latin first, Devanagari second: worker names in this database are Hindi. */
+  --font-sans-stack: var(--font-geist), var(--font-devanagari), ui-sans-serif,
+    system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 @theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-brand-soft: var(--brand-soft);
+
+  --font-sans: var(--font-sans-stack);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    /* Room for the mobile bottom navigation. */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Never let a phone zoom on focus: 16px is the threshold. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1rem);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* One consistent look for every native <select> in the app, so we get the
+     OS picker on mobile without pulling in a JS combobox. */
+  .field-select {
+    @apply h-11 w-full appearance-none rounded-md border border-input bg-card px-3 pr-9 text-base
+           shadow-xs transition-[color,box-shadow] outline-none
+           focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50
+           disabled:cursor-not-allowed disabled:opacity-50;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+  }
+}
+
+/* ── Setu voice orb ─────────────────────────────────────────────────────────
+   The orb is driven by real audio: --amp is written from an AnalyserNode on
+   every frame, so what you see is the actual level of the voice in the room.
+   Everything here is transform/opacity only, so it stays on the compositor. */
+
+@keyframes setu-drift-a {
+  0%   { transform: translate(-9%, -7%) rotate(0deg); }
+  50%  { transform: translate(7%, 9%) rotate(180deg); }
+  100% { transform: translate(-9%, -7%) rotate(360deg); }
+}
+@keyframes setu-drift-b {
+  0%   { transform: translate(8%, 6%) rotate(360deg); }
+  50%  { transform: translate(-6%, -8%) rotate(180deg); }
+  100% { transform: translate(8%, 6%) rotate(0deg); }
+}
+@keyframes setu-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
+}
+@keyframes setu-ripple {
+  0%   { transform: scale(0.92); opacity: 0.45; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+@keyframes setu-sweep {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.setu-orb {
+  --amp: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+
+/* Two elements, because one cannot do both: an `animation` wins over a plain
+   `transform` on the same element, so the breathing would silently swallow the
+   voice-driven scale. The wrapper leans into the voice, the inner one breathes. */
+.setu-orb-scale {
+  transform: scale(calc(1 + var(--amp) * 0.18));
+  transition: transform 90ms linear;
+  will-change: transform;
+}
+.setu-orb-body {
+  animation: setu-breathe 5.5s ease-in-out infinite;
+}
+
+.setu-orb-blob {
+  position: absolute;
+  inset: -18%;
+  border-radius: 9999px;
+  filter: blur(22px);
+  will-change: transform;
+}
+.setu-orb-blob-a { animation: setu-drift-a 14s linear infinite; }
+.setu-orb-blob-b { animation: setu-drift-b 19s linear infinite; }
+
+.setu-orb-halo {
+  position: absolute;
+  inset: -22%;
+  border-radius: 9999px;
+  opacity: calc(0.25 + var(--amp) * 0.55);
+  transform: scale(calc(1 + var(--amp) * 0.3));
+  transition: opacity 120ms linear, transform 120ms linear;
+  filter: blur(30px);
+}
+
+.setu-orb-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  animation: setu-ripple 2.4s ease-out infinite;
+}
+.setu-orb-ring:nth-of-type(2) { animation-delay: 0.8s; }
+.setu-orb-ring:nth-of-type(3) { animation-delay: 1.6s; }
+
+.setu-orb-sweep {
+  position: absolute;
+  inset: -6%;
+  border-radius: 9999px;
+  animation: setu-sweep 2.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setu-orb-body,
+  .setu-orb-scale,
+  .setu-orb-blob-a,
+  .setu-orb-blob-b,
+  .setu-orb-ring,
+  .setu-orb-sweep {
+    animation: none;
+  }
+  .setu-orb-scale { transform: none; }
 }
