@@ -16,8 +16,13 @@ const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 /** Tried in order; the free tier rate-limits, so a fallback matters. */
 const MODELS = ["gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"];
 
+/**
+ * Read as literals, not `process.env[name]`. Bundlers replace `process.env.X`
+ * statically, and a computed lookup can survive locally then come back
+ * undefined once bundled.
+ */
 const key = (name: "GEMINI_API_KEY" | "SARVAM_API_KEY") => {
-  const v = process.env[name];
+  const v = name === "GEMINI_API_KEY" ? process.env.GEMINI_API_KEY : process.env.SARVAM_API_KEY;
   if (!v) throw new Error(`${name} is not set`);
   return v;
 };

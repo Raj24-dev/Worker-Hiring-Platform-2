@@ -3,10 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { admin } from "@/lib/supabase/admin";
-import { supabaseServer } from "@/lib/supabase/server";
 import { requireWorker } from "@/lib/session";
-import { aadhaarField } from "@/lib/validation";
-import { aadhaarHash } from "@/lib/identity";
 import { domainForPosition } from "@/lib/setu/core";
 
 const CERT_BUCKET = "certificates";
@@ -61,43 +58,6 @@ export async function updateWorkerProfile(input: z.input<typeof editSchema>) {
     .eq("id", profile.id);
 
   if (error) return { ok: false as const, error: "Could not save. Please try again." };
-
-  revalidatePath("/profile");
-  revalidatePath("/profile/edit");
-  return { ok: true as const };
-}
-
-/** The Aadhaar step, available from the profile when it was not done at signup. */
-export async function verifyAadhaarNumber(input: { aadhaar: string }) {
-  const { profile } = await requireWorker();
-
-  const digits = String(input.aadhaar ?? "").replace(/\D/g, "");
-  const parsed = aadhaarField.safeParse(digits);
-  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0].message };
-
-  const hash = aadhaarHash(digits);
-  const { error } = await admin
-    .from("profiles")
-    .update({ aadhaar_id: hash })
-    .eq("id", profile.id);
-
-  if (error) {
-    // profiles.aadhaar_id is unique: one Aadhaar, one account. Say so plainly
-    // rather than telling someone to "try again" at something that cannot work.
-    if (error.code === "23505") return { ok: false as const, error: "That Aadhaar number is already linked to another account." };
-    return { ok: false as const, error: "Could not verify. Please try again." };
-  }
-
-  // Remember it on the auth user too, so a later sign-in knows it is done.
-  const sb = await supabaseServer();
-  const {
-    data: { user },
-  } = await sb.auth.getUser();
-  if (user) {
-    await admin.auth.admin.updateUserById(user.id, {
-      user_metadata: { ...user.user_metadata, aadhaar_id: hash },
-    });
-  }
 
   revalidatePath("/profile");
   revalidatePath("/profile/edit");

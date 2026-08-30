@@ -2,7 +2,7 @@ import "server-only";
 import { createHmac, randomInt, timingSafeEqual } from "crypto";
 import { identityKey, maskFor, type LoginKind } from "./identity";
 import { OTP_LENGTH } from "./validation";
-import { DEMO_CODE, DEMO_MODE } from "./demo";
+import { DEMO_CODE, demoMode } from "./demo";
 
 export const OTP_COOKIE = "karigaar_otp";
 const TTL_MS = 5 * 60_000;
@@ -10,7 +10,7 @@ const MAX_ATTEMPTS = 5;
 
 /** See lib/demo.ts: the code is fixed while the delivery of it is simulated. */
 function nextCode() {
-  if (DEMO_MODE && DEMO_CODE.length === OTP_LENGTH) return DEMO_CODE;
+  if (demoMode() && DEMO_CODE.length === OTP_LENGTH) return DEMO_CODE;
   return String(randomInt(0, 10 ** OTP_LENGTH)).padStart(OTP_LENGTH, "0");
 }
 

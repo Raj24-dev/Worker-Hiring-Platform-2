@@ -9,6 +9,7 @@ import { test } from "vitest";
 
 import { verhoeff, otpSchema, OTP_LENGTH } from "@/lib/validation";
 import { issueOtp, verifyOtp, peekOtp, reissueOtp } from "@/lib/otp";
+import { DEMO_CODE } from "@/lib/demo";
 import { identityKey, emailForKey, aadhaarIdFromKey, maskFor } from "@/lib/identity";
 import { pay, proximity, timeAgo } from "@/lib/format";
 
@@ -44,27 +45,26 @@ test("a correct OTP verifies and a wrong one does not", () => {
   if (right.ok) assert.equal(right.key, "phone:9876543210");
 });
 
-test("demo mode is opt-in and cannot leak in by accident", () => {
-  // Unset: the code must be unpredictable. This is the only thing standing
-  // between "sign in with a phone number" and "sign in as anyone".
-  delete process.env.DEMO_OTP;
+test("demo mode fixes the code; turning it off makes it unpredictable", () => {
+  // On — the default for this build, because there is no SMS to receive.
+  delete process.env.NEXT_PUBLIC_DEMO_MODE;
+  const demo = issueOtp("phone", "9876543210");
+  assert.equal(demo.code, DEMO_CODE, "the documented demo code");
+  assert.equal(demo.code.length, OTP_LENGTH);
+  assert.equal(verifyOtp(demo.token, DEMO_CODE).ok, true);
+
+  // Off — random, which is the only thing standing between "sign in with a
+  // phone number" and "sign in as anyone".
+  process.env.NEXT_PUBLIC_DEMO_MODE = "false";
   const codes = new Set(
     Array.from({ length: 30 }, () => issueOtp("phone", "9876543210").code),
   );
-  assert.ok(codes.size > 1, "codes must vary when DEMO_OTP is not set");
-  for (const c of codes) assert.match(c, /^\d+$/);
-  assert.equal([...codes][0].length, OTP_LENGTH);
-
-  // Set: every code is the fixed one, and it still has to verify.
-  process.env.DEMO_OTP = "9254";
-  const { code, token } = issueOtp("phone", "9876543210");
-  assert.equal(code, "9254");
-  assert.equal(verifyOtp(token, "9254").ok, true);
-
-  // A malformed value is ignored rather than becoming the code.
-  process.env.DEMO_OTP = "not-a-code";
-  assert.notEqual(issueOtp("phone", "9876543210").code, "not-a-code");
-  delete process.env.DEMO_OTP;
+  assert.ok(codes.size > 1, "codes must vary with demo mode off");
+  for (const c of codes) {
+    assert.match(c, /^\d+$/);
+    assert.equal(c.length, OTP_LENGTH);
+  }
+  delete process.env.NEXT_PUBLIC_DEMO_MODE;
 });
 
 test("the OTP cookie is tamper-evident and never carries the code", () => {
@@ -91,13 +91,15 @@ test("wrong attempts run out", () => {
   if (!burnt.ok) assert.match(burnt.error, /Too many/);
 });
 
-test("resend keeps the account but changes the code", () => {
+test("resend keeps the account but retires the previous code", () => {
+  // Checked with demo mode off, where consecutive codes actually differ.
+  process.env.NEXT_PUBLIC_DEMO_MODE = "false";
   const first = issueOtp("aadhaar", "222333444555");
   const again = reissueOtp(first.token);
   assert.ok(again);
   assert.equal(verifyOtp(again.token, first.code).ok, false, "the old code must stop working");
-  const ok = verifyOtp(again.token, again.code);
-  assert.equal(ok.ok, true);
+  assert.equal(verifyOtp(again.token, again.code).ok, true);
+  delete process.env.NEXT_PUBLIC_DEMO_MODE;
 });
 
 test("raw Aadhaar never survives into the key, email or mask", () => {

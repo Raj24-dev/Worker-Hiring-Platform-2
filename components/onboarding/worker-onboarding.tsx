@@ -72,13 +72,16 @@ export function WorkerOnboarding({
         : [...prev.positions, p],
     }));
 
-  // The Aadhaar step is skipped when the account already signed in with Aadhaar.
+  // Frozen at mount. Verifying Aadhaar re-renders the server component with
+  // aadhaarAlreadyVerified now true, and letting the list shrink underneath
+  // would silently skip the person past their own confirmation screen.
+  const [skipAadhaar] = useState(aadhaarAlreadyVerified);
   const steps = useMemo(
     () =>
-      aadhaarAlreadyVerified
+      skipAadhaar
         ? (["about", "domain", "positions", "details"] as const)
         : (["aadhaar", "about", "domain", "positions", "details"] as const),
-    [aadhaarAlreadyVerified],
+    [skipAadhaar],
   );
 
   const current: string = steps[step];

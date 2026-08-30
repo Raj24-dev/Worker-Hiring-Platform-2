@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DEMO_MODE } from "./demo";
+import { demoMode } from "./demo";
 
 /** Four boxes, as the sketch draws them. The OTP screen renders exactly this many. */
 export const OTP_LENGTH = 4;
@@ -39,9 +39,9 @@ export const phoneField = z
  * Verhoeff is Aadhaar's real checksum and only ~11% of 12-digit numbers pass
  * it, so every number a person types into a demo ("1234 5678 9012") is
  * rejected. While the whole verification is simulated, checking the length is
- * the honest bar; the real check comes back with DEMO_MODE off.
+ * the honest bar; the real check comes back with demo mode off.
  */
-export const aadhaarField = DEMO_MODE
+export const aadhaarField = demoMode()
   ? z.string().length(12, "Aadhaar is 12 digits")
   : z
       .string()

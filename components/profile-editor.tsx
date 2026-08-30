@@ -8,10 +8,9 @@ import {
   certificateLink,
   deleteCertificate,
   updateWorkerProfile,
-  verifyAadhaarNumber,
 } from "@/actions/profile";
 import { AVAILABILITY, DOMAINS, EXPERIENCE } from "@/lib/domains";
-import { verhoeff } from "@/lib/validation";
+import { AadhaarVerify } from "@/components/aadhaar-verify";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -236,13 +235,12 @@ export function ProfileEditor({
   );
 }
 
+/**
+ * Same two-step verification as onboarding and the phone login, so identity
+ * checks behave identically everywhere in the app.
+ */
 function AadhaarCard() {
   const router = useRouter();
-  const [value, setValue] = useState("");
-  const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  const ready = value.length === 12 && verhoeff(value);
 
   return (
     <section className="rounded-xl border-2 border-primary/30 bg-brand-soft/50 p-5">
@@ -250,41 +248,10 @@ function AadhaarCard() {
         <ShieldCheck className="size-5 text-primary" />
         Verify with Aadhaar
       </h2>
-      <p className="mt-1.5 text-sm text-muted-foreground">
-        Verified workers get picked more often. Your number is never saved — only a
-        secure code made from it.
+      <p className="mt-1.5 mb-4 text-sm text-muted-foreground">
+        Verified workers get picked more often.
       </p>
-      <Input
-        value={value.replace(/(\d{4})(?=\d)/g, "$1 ")}
-        onChange={(e) => setValue(e.target.value.replace(/\D/g, "").slice(0, 12))}
-        inputMode="numeric"
-        placeholder="1234 5678 9012"
-        aria-label="Aadhaar number"
-        className="mt-4 h-12 bg-card text-base tracking-wider md:text-base"
-      />
-      {error && (
-        <p role="alert" className="mt-2 text-sm text-destructive">
-          {error}
-        </p>
-      )}
-      <Button
-        className="mt-3 w-full"
-        disabled={!ready || pending}
-        onClick={() =>
-          start(async () => {
-            setError(null);
-            const res = await verifyAadhaarNumber({ aadhaar: value });
-            if (!res.ok) {
-              setError(res.error);
-              return;
-            }
-            router.refresh();
-          })
-        }
-      >
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Verify
-      </Button>
+      <AadhaarVerify autoFocus={false} onVerified={() => router.refresh()} />
     </section>
   );
 }
